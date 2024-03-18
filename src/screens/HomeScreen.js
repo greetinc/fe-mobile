@@ -1,176 +1,290 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { TouchableWithoutFeedback, View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, Animated, PanResponder, Dimensions, Image } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Icon from 'react-native-vector-icons/Ionicons';
+import Footer from '../components/Footer.js';
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const HomeScreen = ({ navigation }) => {
-  const [isAttendanceMarked, setAttendanceMarked] = useState(false);
-  const [isTapOutButtonDisabled, setTapOutButtonDisabled] = useState(false);
-  const [id, setAttendanceId] = useState(null);
+  const [position] = useState(new Animated.ValueXY());
+  const [users, setUsers] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isTreeMenuVisible, setIsTreeMenuVisible] = useState(false);
+  const [showStars, setShowStars] = useState([]);
+  const SWIPE_THRESHOLD = 50;
+  const SWIPE_OUT_THRESHOLD = 50;
+  const heartIconRef = React.useRef(null);
+  const closeIconRef = React.useRef(null);
+  let isLogPrinted = false; // Flag untuk menandai apakah log telah dicetak
+  const [imagePlace, setImage] = useState([]);
+  const [hasSwipedRight, setHasSwipedRight] = useState(false); // New state variable
+  
+  const panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onPanResponderMove: (evt, gestureState) => {
+      if (Math.abs(gestureState.dx) > SWIPE_THRESHOLD && !isLogPrinted) {
+        console.log(gestureState.dx > 0 ? 'Swipe Right' : 'Swipe Left');
+        isLogPrinted = true;
+      }
+      position.setValue({ x: gestureState.dx, y: 0 });
+    },
+    onPanResponderRelease: (evt, gestureState) => {
+      isLogPrinted = false;
+      if (gestureState.dx > SWIPE_THRESHOLD) {
+        forceSwipe('right');
+      } else if (gestureState.dx < -SWIPE_THRESHOLD) {
+        forceSwipe('left');
+      } else {
+        resetPosition();
+      }
+    },
+  });
 
   useEffect(() => {
-    console.log('Attendance ID after setAttendanceId:', id);
-  }, [id]);
+    setHasSwipedRight(false); // Reset hasSwipedRight when currentIndex changes
+  }, [currentIndex]);
 
-  const handleLogout = async () => {
+
+  const forceSwipe = (direction) => {
+    if (direction === 'right' && !hasSwipedRight) {
+      setHasSwipedRight(true);
+      const x = SWIPE_OUT_THRESHOLD;
+      Animated.timing(position, {
+        toValue: { x, y: 0 },
+        duration: 250,
+        useNativeDriver: false,
+      }).start(() => {
+        handleSwipeComplete(direction);
+      });
+    } else if (direction === 'left') {
+      const x = -SWIPE_OUT_THRESHOLD; // Atur nilai x negatif untuk swipe ke kiri
+      Animated.timing(position, {
+        toValue: { x, y: 0 },
+        duration: 250,
+        useNativeDriver: false,
+      }).start(() => {
+        handleSwipeComplete(direction);
+      });
+    }
+  };
+  
+  const resetPosition = () => {
+    Animated.spring(position, {
+      toValue: { x: 0, y: 0 },
+      useNativeDriver: false,
+    }).start(() => {
+      setHasSwipedRight(false);
+      if (position.x._value < 0) {
+        // Hanya perbarui currentIndex jika swipe kiri
+        setCurrentIndex((prevIndex) => prevIndex + 1);
+      }
+    });
+  };
+
+  const handleSwipeComplete = (direction) => {
+    if (direction === 'right') {
+      handleHeartIconPress();
+    }
+    setCurrentIndex((prevIndex) => prevIndex + 1);
+    position.setValue({ x: 0, y: 0 });
+  };
+
+  const fetchData = async () => {
     try {
       const token = await AsyncStorage.getItem('jwtToken');
-
-      if (!token) {
-        console.error('Authentication token is missing.');
-        return;
-      }
-
-      const response = await axios.post('http://10.0.2.2:8080/api/v1/logout', null, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await axios.get('http://192.168.43.250:8080/api/v1/user/find', {
+        headers: { Authorization: `Bearer ${token}` },
       });
-
       if (response.status === 200) {
-        await AsyncStorage.removeItem('jwtToken');
-        navigation.navigate('Login');
+        setUsers(response.data);
+
       } else {
-        console.log('Response:', response.data);
-        Alert.alert('Logout Failed', 'Unexpected response from the server. Please try again.');
+        Alert.alert('Fetch Data Failed', 'Unexpected response from the server.');
       }
     } catch (error) {
-      console.error('Error during logout:', error);
-      Alert.alert('Logout Failed', 'An error occurred during the logout process. Please try again.');
+      Alert.alert('Fetch Data Failed', 'An error occurred while fetching the data.');
     }
   };
 
-  const handleMarkAttendance = () => {
-    if (!isAttendanceMarked) {
-      if (!handleTapIn()) {
-        Alert.alert('Validation Failed', 'Please tap in before tapping out.');
-        return;
-      }
-      setAttendanceMarked(true);
-      Alert.alert('Attendance Marked', 'You have successfully marked your attendance.');
-    } else {
-      Alert.alert('Attendance Already Marked', 'You have already marked your attendance.');
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const toggleTreeMenu = () => {
+    setIsTreeMenuVisible(!isTreeMenuVisible);
+  };
+
+  const goToPreviousUser = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(prevIndex => prevIndex - 1);
+      position.setValue({ x: 0, y: 0 });
     }
   };
 
-  const handleTapIn = async () => {
+  const handleHeartIconPress = async () => {
     try {
-      const currentTime = new Date().toLocaleString();
-  
-      const response = await axios.post(
-        'http://10.0.2.2:8080/api/v1/attendance',
-        { tap_in: currentTime },
-        {
-          headers: {
-            Authorization: `Bearer ${await AsyncStorage.getItem('jwtToken')}`,
-          },
-        }
-      );
-  
+      const token = await AsyncStorage.getItem('jwtToken');
+      const response = await axios.post('http://192.168.43.250:8080/api/v1/user/find/swipe', {
+        like_id: users[currentIndex]?.id, // Assuming each user object has an 'id' property
+        action: 'like', // or 'dislike' based on your backend requirements
+      }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (response.status === 200) {
-        const id = response.data.data.id; // Ubah bagian ini
-        console.log('Tap in success:', response.data.data.id);
-  
-        // Perbarui state dengan attendanceId yang benar
-        setAttendanceId(id);
       } else {
-        console.log('Tap in failed:', response.data);
-        Alert.alert('Tap In Gagal', 'Gagal menandai kehadiran. Silakan coba lagi.');
+        Alert.alert('Swipe Failed', 'Unexpected response from the server.');
       }
     } catch (error) {
-      console.error('Error selama tap in:', error);
-      Alert.alert('Tap In Gagal', 'Terjadi kesalahan selama proses tap in. Silakan coba lagi.');
+      Alert.alert('Swipe Failed', 'An error occurred while processing the swipe.');
     }
   };
-  
-  const confirmTapOut = () => {
-    Alert.alert(
-      'Confirmation',
-      'Are you sure you want to tap out?',
-      [
-        { text: 'No', style: 'cancel' },
-        { text: 'Yes', onPress: handleTapOut },
-      ],
-      { cancelable: true }
-    );
-  };
 
-  const handleTapOut = async () => {
+  const fetchUserProfile = async (profile_id) => {
     try {
-      const currentTime = new Date().toLocaleString();
-
-      if (!id) {
-        console.error('Attendance ID is missing.');
-        Alert.alert('Tap Out Failed', 'Failed to find attendance ID. Please try again.');
-        return;
-      }
-
-      const response = await axios.put(
-        `http://10.0.2.2:8080/api/v1/attendance/${id}`,
-        { tap_out: currentTime },
-        {
-          headers: {
-            Authorization: `Bearer ${await AsyncStorage.getItem('jwtToken')}`,
-          },
-        }
-      );
-
+      const token = await AsyncStorage.getItem('jwtToken');
+      const response = await axios.get(`http://192.168.43.250:8080/api/v1/profile/${profile_id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+      
       if (response.status === 200) {
-        console.log('Tap out success:', response.data);
-        setAttendanceMarked(true);
-        setTapOutButtonDisabled(true);
-        Alert.alert('Attendance Marked', 'You have successfully tapped out.');
+        // Handle the data from the API response
+        console.log('User Profile:', response.data);
+        navigation.navigate('ProfileView', { profile_id });
+
       } else {
-        console.log('Tap out failed:', response.data);
-        Alert.alert('Tap Out Failed', 'Failed to mark tap out. Please try again.');
+        Alert.alert('Fetch Profile Failed', 'Unexpected response from the server.');
       }
     } catch (error) {
-      console.error('Error during tap out:', error);
-      Alert.alert('Tap Out Failed', 'An error occurred during the tap out process. Please try again.');
+      Alert.alert('Fetch Profile Failed', 'An error occurred while fetching the profile.');
     }
   };
 
-  const currentDate = new Date();
-  const formattedDate = `${currentDate.toLocaleDateString()} ${currentDate.toLocaleTimeString()}`;
+  const handleProfileClick = (profile_id) => {
+    fetchUserProfile(profile_id);
+    // Additional logic for handling the click, e.g., navigation or other actions
+  };  
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.headerContainer}>
-        <Text style={styles.header}>Welcome to Your App!</Text>
-      </View>
-
-      <View style={styles.dateContainer}>
-        <Text style={styles.dateText}>{formattedDate}</Text>
-      </View>
-
-      {!isAttendanceMarked && (
-        <TouchableOpacity
-          style={[styles.attendanceButton, isAttendanceMarked && styles.attendanceButtonMarked]}
-          onPress={handleMarkAttendance}
-        >
-          <Text style={styles.buttonText}>Tap In</Text>
+        <Text style={styles.header}>Home</Text>
+        <TouchableOpacity onPress={toggleTreeMenu}>
+          <Icon name="menu" size={screenWidth * 0.05} color="#000" />
         </TouchableOpacity>
+      </View>
+      {isTreeMenuVisible && (
+        <View style={styles.treeMenu}>
+          <TouchableOpacity onPress={() => navigation.navigate('Setting')}>
+            <Text>Setting</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Friends')}>
+            <Text>Match</Text>
+          </TouchableOpacity>
+          <Text>Menu 3</Text>
+        </View>
       )}
 
-      {isAttendanceMarked && (
-        <TouchableOpacity
-          style={[styles.attendanceButton, styles.attendanceButtonMarked]}
-          onPress={confirmTapOut}
-          disabled={isTapOutButtonDisabled}
-        >
-          <Text style={styles.buttonText}>Tap Out</Text>
-        </TouchableOpacity>
-      )}
+<Animated.View
+  {...panResponder.panHandlers}
+  style={[
+    styles.cardStyle,
+    position.getLayout(),
+    {
+      transform: [
+        {
+          rotate: position.x.interpolate({
+            inputRange: [-300, 0, 300],
+            outputRange: ["-50deg", "0deg", "50deg"],
+            extrapolate: "clamp",
+          }),
+        },
+      ],
+    },
+  ]}
+>
+<TouchableWithoutFeedback onPress={() => handleProfileClick(users[currentIndex]?.profile_id)}>
+  {users[currentIndex]?.profile_picture?.file_path ? (
+    // Log image information
+    console.log('Image Information:', `http://192.168.43.250:8080/${users[currentIndex]?.profile_picture?.file_path}`) ||
 
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Text style={styles.buttonText}>Logout</Text>
+    <Image
+      source={{ uri: `http://192.168.43.250:8080/${users[currentIndex]?.profile_picture?.file_path}` }}
+      style={styles.cardImage}
+    />
+  ) : (
+    <Text>No Image Available</Text>
+  )}
+</TouchableWithoutFeedback>
+  <View style={styles.nameAgeContainer}>
+    <Text style={styles.fullNameText}>{users[currentIndex]?.full_name || 'Swipe me!' }, </Text>
+    <Text style={styles.ageText}>{users[currentIndex]?.age}</Text>
+  </View>
+  
+  <View style={styles.distanceContainer}>
+  <Text style={styles.distanceText}>{users[currentIndex]?.distance}</Text>
+  </View>
+
+  
+  {showStars[currentIndex] && (
+    <Animated.View style={[styles.starIcon, {
+      transform: [{
+        rotate: position.x.interpolate({
+          inputRange: [-300, 0, 300],
+          outputRange: ["-360deg", "0deg", "360deg"],
+          extrapolate: "clamp",
+        }),
+      }]
+    }]}>
+      <Icon name="star" size={screenWidth * 0.1} color="#48cf91" />
+    </Animated.View>
+  )}
+
+</Animated.View>
+
+      <View style={styles.newFooter}>
+      <TouchableOpacity style={styles.circularButton} onPress={goToPreviousUser}>
+          <Icon name="arrow-undo" size={screenWidth * 0.06} color="#b899ba" />
+        </TouchableOpacity>
+      <TouchableOpacity 
+        style={styles.heartcloseButton} onPress={() => {forceSwipe('left'); }} >
+        <Icon ref={closeIconRef}name="close" size={screenWidth * 0.08} color="#000" />
       </TouchableOpacity>
-
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.circularButton} onPress={() => navigation.navigate('Profile')}>
-          <Text style={styles.circularButtonText}>Profile</Text>
+      <TouchableOpacity style={styles.circularButton} onPress={() => {
+          const newShowStars = [...showStars];
+          newShowStars[currentIndex] = true;
+          setShowStars(newShowStars);
+          setTimeout(() => {
+            newShowStars[currentIndex] = false;
+            setShowStars(newShowStars);
+          }, 3000);
+        }}>
+          <Icon name="star" size={screenWidth * 0.06} color="#48cf91" />
         </TouchableOpacity>
-      </View>
+
+        <TouchableOpacity 
+          style={styles.heartHeartButton} 
+          onPress={() => {
+            forceSwipe('right');  // Force swipe to the right when heart icon is pressed
+          }}
+        >
+          <Icon 
+            ref={heartIconRef}
+            name="heart" 
+            size={screenWidth * 0.08} 
+            color="#fe2b29" 
+          />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.heartcloseButton} onPress={() => navigation.navigate('Boost')}>
+          <Icon name="flash" size={screenWidth * 0.06} color="#426ec8" />
+        </TouchableOpacity>
+        
+       </View>
+       <Footer navigation={navigation} closeIconRef={closeIconRef} />
+      
     </ScrollView>
   );
 };
@@ -183,70 +297,120 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#f0f0f0',
   },
-  headerContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
+   cardImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    borderRadius: 10,
   },
-  header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  dateContainer: {
-    marginBottom: 20,
-  },
-  dateText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  attendanceButton: {
-    backgroundColor: '#3498db',
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-    marginBottom: 20,
-  },
-  attendanceButtonMarked: {
-    backgroundColor: '#2ecc71',
-  },
-  profileButton: {
-    backgroundColor: '#9b59b6',
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-    marginBottom: 20,
-  },
-  logoutButton: {
-    backgroundColor: '#e74c3c',
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  footer: {
+  treeMenu: {
     position: 'absolute',
-    bottom: 0,
+    top: screenHeight * 0.05,
+    left: screenWidth * 0.65,
+    right: screenWidth * 0.2,
+    width: screenWidth * 0.4,
+    backgroundColor: '#fff',
+    padding: screenWidth * 0.01,
+    zIndex: 10,
+    elevation: 10,
+  },
+  cardStyle: {
+    position: 'relative',
+    width: screenWidth * 0.9,
+    height: screenHeight * 0.73,
+    marginTop: screenHeight * 0.01,
+    marginBottom: screenHeight * 0.05,
+    borderRadius: 10,
+    backgroundColor: '#f0f0f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    zIndex: 1,
+  },
+
+  starIcon: {
+    position: 'absolute',
+    top: '50%',               // Position it vertically at the center
+    left: '45%',              // Position it horizontally at the center
+    transform: [{ translateX: -screenWidth * 0.05 / 2 }, { translateY: -screenWidth * 0.1 / 2 }],  // Adjust icon size
+  },
+  headerContainer: {
+    position: 'absolute',
+    top: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#2e2e2e',
-    paddingVertical: 10,
+    backgroundColor: '#fff',
+    paddingVertical: screenHeight * 0.012,
+    paddingHorizontal: screenWidth * 0.05,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    zIndex: 2,  // Ensure the header appears above the card
+
   },
-  circularButton: {
-    backgroundColor: '#3498db',
-    borderRadius: 50,
-    padding: 15,
-  },
-  circularButtonText: {
-    color: '#fff',
-    fontSize: 16,
+  header: {
+    fontSize: screenWidth * 0.06,
     fontWeight: 'bold',
+    color: '#ffffff',
+  },
+  newFooter: {
+    position: 'absolute',
+    bottom: screenHeight * 0.07,
+    left: 0,
+    right: 0,
+    backgroundColor: '#00000040',  // Warna hitam dengan opacity sekitar 50%
+    paddingVertical: screenHeight * 0.015,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: screenWidth * 0.05,
+    zIndex: 2,
+  },
+
+  circularButton: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: 50,
+    padding: screenWidth * 0.02,
+  },
+  heartcloseButton: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: 50,
+    padding: screenWidth * 0.03,
+  },
+  heartHeartButton: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: 50,
+    padding: screenWidth * 0.03,
+  },
+  nameAgeContainer: {
+    position: 'absolute',
+    bottom: 40,            // Position from the bottom of the card
+    left: 20,              // Position from the left of the card
+    flexDirection: 'row',  // Arrange items horizontally
+    alignItems: 'center',  // Center items vertically
+  },
+  distanceContainer: {
+    position: 'absolute',
+    bottom: 10,            // Position from the bottom of the card
+    left: 20,              // Position from the left of the card
+    flexDirection: 'row',  // Arrange items horizontally
+    alignItems: 'center',  // Center items vertically
+  },
+
+  fullNameText: {
+    fontSize: screenWidth * 0.04,  // Adjust font size as needed
+    fontWeight: 'bold',
+    marginRight: 5,  // Add some spacing between full_name and age
+  },
+
+  ageText: {
+    fontSize: screenWidth * 0.04,  // Adjust font size as needed
+  },
+  distanceText: {
+    fontSize: screenWidth * 0.04
   },
 });
 
 export default HomeScreen;
+

@@ -27,12 +27,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderColor: 'black',
-    marginBottom: 20,
+    borderColor: '#ccc',
+    marginBottom: 40,
+    width:300,
+
   },
   input: {
     flex: 1,
     height: 40,
+    width:30,
   },
   toggleButton: {
     padding: 10,

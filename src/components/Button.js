@@ -1,27 +1,51 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, Dimensions } from 'react-native';
 
-const Button = ({ title, onPress }) => {
+const { width } = Dimensions.get('window');
+
+// const Button = ({ title, onPress }) => {
+//   return (
+//     <TouchableOpacity style={styles.button} onPress={onPress}>
+//       <Text style={styles.buttonText}>{title}</Text>
+//     </TouchableOpacity>
+//   );
+// };
+
+const Button = ({ title, onPress, disabled }) => {
   return (
-    <TouchableOpacity style={styles.button} onPress={onPress}>
-      <Text style={styles.buttonText}>{title}</Text>
+    <TouchableOpacity
+      style={[styles.button, disabled && styles.disabledButton]}
+      onPress={!disabled ? onPress : null}
+      disabled={disabled}
+    >
+      <Text style={[styles.buttonText, disabled && styles.disabledButtonText]}>{title}</Text>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: '#223C48',
+    backgroundColor: '#fff',
+    borderColor: '#E92026',
+    borderWidth: 1,
     padding: 15,
-    borderRadius: 25,
+    borderRadius: 8,
     alignItems: 'center',
+    alignSelf: 'center',
     marginVertical: 10,
-    width: '80%',
+    width: width * 0.75,
   },
   buttonText: {
-    color: 'white',
+    color: '#E92026',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  disabledButton: {
+    backgroundColor: '#ccc', // Set a different color for disabled state
+    borderColor: '#ccc',
+  },
+  disabledButtonText: {
+    color: '#888', // Set a different color for disabled state
   },
 });
 

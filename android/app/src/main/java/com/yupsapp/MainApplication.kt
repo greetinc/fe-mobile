@@ -1,4 +1,4 @@
-package com.yupsapp
+package com.GreetInc
 
 import android.app.Application
 import com.facebook.react.PackageList
@@ -19,6 +19,7 @@ class MainApplication : Application(), ReactApplication {
         override fun getPackages(): List<ReactPackage> {
           // Packages that cannot be autolinked yet can be added manually here, for example:
           // packages.add(new MyReactNativePackage());
+
           return PackageList(this).packages
         }
 
