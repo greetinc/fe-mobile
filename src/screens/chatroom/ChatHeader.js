@@ -1,10 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
-const ChatHeader = ({ friendName }) => {
+const ChatHeader = ({ friend }) => {
   return (
     <View style={styles.headerContainer}>
-      <Text style={styles.headerText}>{friendName}</Text>
+      <Text style={styles.headerText}>{friend}</Text>
     </View>
   );
 };

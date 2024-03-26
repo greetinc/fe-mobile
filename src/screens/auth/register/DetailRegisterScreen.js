@@ -41,6 +41,7 @@ const DetailRegisterScreen = () => {
         {
           headers: {
             'Content-Type': 'application/json',
+            'x-api-key': '3f=Pr#g1@RU-nw=30',
           },
         }
       );

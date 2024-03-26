@@ -14,7 +14,7 @@ const Footer = ({ closeIconRef }) => {
       <TouchableOpacity style={styles.circularButton} onPress={() => navigation.navigate('Likes')}>
         <Icon name="heart-outline" size={screenWidth * 0.06} color="#000" />
       </TouchableOpacity>
-      <TouchableOpacity style={styles.circularButton} onPress={() => navigation.navigate('Subscribe')}>
+      <TouchableOpacity style={styles.circularButton} onPress={() => navigation.navigate('Socmed')}>
         <Icon ref={closeIconRef} name="grid-outline" size={screenWidth * 0.06} color="#000" />
       </TouchableOpacity>
       <TouchableOpacity style={styles.circularButton} onPress={() => navigation.navigate('Home')}>

@@ -62,7 +62,14 @@ const RegisterScreen = () => {
         whatsapp,
       };
 
-      const response = await axios.post('http://192.168.43.250:8080/api/auth/register', userData);
+      const config = {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': '3f=Pr#g1@RU-nw=30',
+        },
+      };
+
+      const response = await axios.post('http://192.168.43.250:8080/api/auth/register', userData, config);
 
       if (response.status === 200) {
         showMessage({

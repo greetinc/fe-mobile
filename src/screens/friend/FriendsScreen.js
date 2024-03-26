@@ -24,9 +24,8 @@ const FriendsScreen = () => {
 
   const navigation = useNavigation();
 
-  const handleChatPress = (friendId) => {
-    navigation.navigate('Chat', { friendId });
-    
+  const handleChatPress = (friendId, friendName) => {
+    navigation.navigate('Chat', { friendId, friendName }); 
   };
 
   useEffect(() => {
@@ -34,7 +33,7 @@ const FriendsScreen = () => {
   }, []);
 
   const renderFriendItem = ({ item }) => (
-    <TouchableOpacity style={styles.friendItemContainer} onPress={() => handleChatPress(item.friend_id)}>
+    <TouchableOpacity style={styles.friendItemContainer} onPress={() => handleChatPress(item.friend_id, item.full_name)}>
       <Image source={{ uri: 'https://icon-library.com/images/no-photo-icon/no-photo-icon-0.jpg' }} style={styles.profileImage} />
       <View style={styles.friendInfoContainer}>
         <Text style={styles.friendName}>{item.full_name}</Text>

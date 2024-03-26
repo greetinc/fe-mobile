@@ -211,6 +211,8 @@ const ProfileScreen = () => {
                 ))}
               </View>
             </View>
+            <Text style={styles.sectionTitle} onPress={() =>navigation.navigate('Subscribe')}>Lets go</Text>
+
 
             <View style={styles.sectionContainer}>
               <TouchableOpacity style={styles.button} onPress={handleLogout}>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet, Dimensions } from 'react-native';
 import InputField from '../../../components/InputField';
 import Button from '../../../components/Button';
@@ -18,9 +18,15 @@ const DOBScreen = (user_id) => {
   const [selectedMonth, setSelectedMonth] = useState('');
   const [selectedYear, setSelectedYear] = useState('');
   const [dateSelected, setDateSelected] = useState(false);
+
+  useEffect(() => {
+    checkDateSelected(); // Initial check
+  }, [selectedDay, selectedMonth, selectedYear]);
+
   const checkDateSelected = () => {
-    setDateSelected(selectedDay !== '' && selectedMonth !== '' && selectedYear !== '');
+    setDateSelected(selectedDay.length > 0 && selectedMonth.length > 0 && selectedYear.length > 0);
   };
+
   const calculateAge = () => {
     if (selectedDay && selectedMonth && selectedYear) {
       const birthDate = new Date(`${selectedYear}-${selectedMonth}-${selectedDay}`);
@@ -67,6 +73,7 @@ const DOBScreen = (user_id) => {
         {
           headers: {
             'Content-Type': 'application/json',
+            'x-api-key': '3f=Pr#g1@RU-nw=30',
           },
         }
       );
@@ -125,7 +132,6 @@ const DOBScreen = (user_id) => {
           <RNPickerSelect
             onValueChange={(value) => {
               setSelectedDay(value);
-              checkDateSelected(); // Check if all date components are selected
             }}
             items={dateItems}
             style={pickerSelectStyles}
@@ -137,7 +143,6 @@ const DOBScreen = (user_id) => {
           <RNPickerSelect
               onValueChange={(value) => {
                 setSelectedMonth(value);
-                checkDateSelected(); // Check if all date components are selected
               }}
               items={monthItems}
               style={pickerSelectStyles}
@@ -149,7 +154,6 @@ const DOBScreen = (user_id) => {
           <RNPickerSelect
               onValueChange={(value) => {
                 setSelectedYear(value);
-                checkDateSelected(); // Check if all date components are selected
               }}
               items={yearsItems}
               style={pickerSelectStyles}

@@ -32,8 +32,7 @@ const LikeScreen = ({ navigation }) => {
 
   const renderItem = ({ item }) => (
     <View style={styles.item}>
-      <Text>User ID: {item.user_id}</Text>
-      {/* Other properties can be displayed as needed */}
+      <Text style={styles.blurText}>{item.full_name}</Text>
     </View>
   );
 
@@ -75,6 +74,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+  },
+  blurText: {
+    color: 'transparent', // Membuat teks menjadi transparan
+    textShadowColor: 'rgba(0, 0, 0, 0.1)', // Warna bayangan teks
+    textShadowOffset: { width: 0, height: 2 }, // Offset bayangan teks
+    textShadowRadius:10, // Radius bayangan teks
   },
 });
 

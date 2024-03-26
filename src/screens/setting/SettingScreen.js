@@ -15,7 +15,7 @@ const SettingScreen = () => {
   const [selectedOption, setSelectedOption] = useState('Option 1');
   const [submitting, setSubmitting] = useState(false);
   const [selectedAge, setSelectedAge] = useState([16, 55]); // Set an initial age range
-  const [sliderValue, setSliderValue] = useState(50); // State untuk slider range
+  const [distance, setDistanceValue] = useState(50); // State untuk slider range
   const [isModalVisible, setModalVisible] = useState(false);
   const [editedFullName, setEditedFullName] = useState('');
 
@@ -139,14 +139,15 @@ const SettingScreen = () => {
   const handleRadiusSubmit = async () => {
     try {
       const token = await AsyncStorage.getItem('jwtToken');
-      const response = await fetch('URL_API_RADIUS', {  // Gantilah 'URL_API_RADIUS' sesuai dengan URL yang benar untuk mengedit radius
+      const response = await fetch(`http://192.168.43.250:8080/api/v1/distance/${profileData?.data?.id}`, {
+
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          radius: sliderValue,
+          distance: distance,
         }),
       });
   
@@ -167,7 +168,8 @@ const SettingScreen = () => {
     try {
       // Kirim permintaan untuk mengubah rentang usia dan radius
       await handleAgeRangeSubmit();
-  
+      await handleRadiusSubmit();
+
       // Kirim permintaan untuk mengubah data profil lainnya
     } catch (error) {
       console.error('Error submitting permit:', error);
@@ -284,6 +286,7 @@ const SettingScreen = () => {
             <View style={styles.sliderRangeTextContainer}>
               <Text style={styles.sliderRangeText}>{`${selectedAge[0]} - ${selectedAge[1]}`}</Text>
             </View>
+
             <View style={styles.formField}>
               <Text style={styles.label}>Radius:</Text>
               <Slider
@@ -291,12 +294,12 @@ const SettingScreen = () => {
                 minimumValue={5}
                 maximumValue={80}
                 step={1}
-                value={sliderValue}
-                onValueChange={(value) => setSliderValue(value)}
+                value={distance}
+                onValueChange={(value) => setDistanceValue(value)}
               />
             </View>
             <View style={styles.sliderRangeTextContainer}>
-            <Text style={styles.sliderValueText}>{`${sliderValue} km`}</Text>
+            <Text style={styles.sliderValueText}>{`${distance} km`}</Text>
             </View>       
           </View>
           <View style={styles.sectionContainer}>

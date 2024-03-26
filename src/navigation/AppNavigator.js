@@ -18,6 +18,7 @@ import ChatScreen from '../screens/chatroom/ChatScreen';
 import FriendsScreen from '../screens/friend/FriendsScreen';
 import LikeScreen from '../screens/like/LikeScreen';
 import SubscribeScreen from '../screens/subscribe/SubscribeScreen';
+import SocmedScreen from '../screens/socmed/SocmedScreen';
 import SettingScreen from '../screens/setting/SettingScreen';
 import SplashScreen from '../screens/SplashScreen';
 import IntroOneScreen from '../screens/IntroOneScreen';
@@ -62,6 +63,7 @@ const AppNavigator = () => {
       <Stack.Screen name="Friends" component={FriendsScreen} />
       <Stack.Screen name="Likes" component={LikeScreen} />
       <Stack.Screen name="Subscribe" component={SubscribeScreen} />
+      <Stack.Screen name="Socmed" component={SocmedScreen} options={{ headerShown: false }}/>
       <Stack.Screen name="Boost" component={BoostScreen} />
       <Stack.Screen name="Setting" component={SettingScreen} />
       <Stack.Screen name="PaymentScreen" component={PaymentScreen} options={{ headerShown: false }}/>

@@ -14,7 +14,7 @@ const ChatScreen = () => {
   const socketRef = useRef(null);
   const [userId, setUserId] = useState(null);
   const route = useRoute();
-  const { friendId } = route.params;
+  const { friendId, friendName } = route.params; // Mendapatkan friendId dan friendName dari route params
 
   const scrollToBottom = () => {
     if (scrollViewRef.current) {
@@ -46,9 +46,6 @@ const ChatScreen = () => {
   
         socket.onopen = () => {
           console.log('WebSocket Connected');
-
-          fetchChatHistory();
-
         };
   
         socket.onerror = (error) => {
@@ -62,23 +59,22 @@ const ChatScreen = () => {
             data.id = uuid.v4();
           }
   
-          // Cek apakah ini pesan sistem atau pesan yang dikirim oleh pengguna sendiri
           if (data.sender_id !== 'server' && data.sender_id !== userId) {
             setMessages((prevMessages) => [
               ...prevMessages,
               { content: data.content, sender_id: 'server' },
             ]);
-            scrollToBottom(); // Auto-scroll to bottom when a new message is received
+            scrollToBottom();
           }
         };
   
         socket.onclose = (event) => {
           console.log('WebSocket Closed:', event);
         };
-
-
   
         socketRef.current = socket;
+  
+        fetchChatHistory(); // Panggil fetchChatHistory setelah setup socket selesai
       } catch (error) {
         console.error('Error setting up WebSocket:', error);
       }
@@ -92,6 +88,7 @@ const ChatScreen = () => {
       }
     };
   }, [userId]);
+  
   
 
   const sendMessage = () => {
@@ -127,12 +124,20 @@ const ChatScreen = () => {
         },
       });
       console.log('Chat history response:', response.data);
-      setMessages(response.data);
-      scrollToBottom();
+      if (response.data !== null) { // Periksa apakah respons tidak null
+        setMessages(response.data);
+        scrollToBottom();
+      } else {
+        // Menampilkan pesan bahwa tidak ada riwayat obrolan yang ditemukan
+        setMessages([]);
+      }
     } catch (error) {
       console.error('Error fetching chat history:', error);
+      // Tampilkan pesan kesalahan kepada pengguna
+      alert('Error fetching chat history. Please try again later.');
     }
   };
+  
   
 
   const renderMessages = () => {
@@ -156,7 +161,8 @@ const ChatScreen = () => {
 
   return (
     <View style={styles.container}>
-      <ChatHeader friendName={friendId} />
+      <ChatHeader friend={friendName} />
+
       <ScrollView ref={scrollViewRef}>{renderMessages()}</ScrollView> 
       <View style={styles.inputContainer}>
         <TextInput

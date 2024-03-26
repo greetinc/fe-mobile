@@ -76,7 +76,13 @@ const UploadImageScreen = ({ route }) => {
   const handleLocation = async () => {
     if (location) {
       try {
-        await axios.post(`http://192.168.43.250:8080/api/save/location?user_id=${user_id}`, {
+        const config = {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': '3f=Pr#g1@RU-nw=30', // Adding the x-api-key header
+          },
+        };
+          await axios.post(`http://192.168.43.250:8080/api/save/location?user_id=${user_id}`, {  
           coords: location,
           extras: {
             'com.qualcomm.location.nlp:ready': true,
@@ -84,7 +90,7 @@ const UploadImageScreen = ({ route }) => {
           },
           mocked: false,
           timestamp: Date.now(),
-        });
+        }, config);
         console.log('Location saved successfully!');
       } catch (error) {
         console.error('Failed to save location:', error);
@@ -107,6 +113,8 @@ const UploadImageScreen = ({ route }) => {
         const serverResponse = await axios.post(`http://192.168.43.250:8080/api/auth/picture?user_id=${user_id}`, formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
+            'x-api-key': '3f=Pr#g1@RU-nw=30',
+
           },
         });
 
